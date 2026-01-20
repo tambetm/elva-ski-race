@@ -207,7 +207,7 @@ const TrackSegment = ({ y, obstacles, powerups }) => (
 export default function App() {
   const [gameState, setGameState] = useState('menu'); // menu, select, playing, finished
   const [selectedCharacter, setSelectedCharacter] = useState(null);
-  const [playerPos, setPlayerPos] = useState({ x: 200, y: 400 });
+  const [playerPos, setPlayerPos] = useState({ x: 250, y: 400 });
   const [playerStamina, setPlayerStamina] = useState(100);
   const [distance, setDistance] = useState(0);
   const [npcPositions, setNpcPositions] = useState({});
@@ -226,34 +226,42 @@ export default function App() {
   useEffect(() => {
     if (gameState === 'playing' && selectedCharacter) {
       const npcs = {};
-      Object.keys(CHARACTERS).forEach((char, i) => {
+      let npcIndex = 0;
+      Object.keys(CHARACTERS).forEach((char) => {
         if (char !== selectedCharacter) {
-          npcs[char] = { 
-            x: 150 + i * 80, 
+          // Spread NPCs evenly across the track (100-400 range)
+          npcs[char] = {
+            x: 130 + npcIndex * 70,
             y: 420,
             stamina: CHARACTERS[char].stamina,
             crashed: false,
           };
+          npcIndex++;
         }
       });
       setNpcPositions(npcs);
       setPlayerStamina(CHARACTERS[selectedCharacter].stamina);
       
-      // Generate initial obstacles
+      // Generate initial obstacles - spread more and less dense
       const initObstacles = [];
       const initPowerups = [];
-      for (let i = 0; i < 50; i++) {
-        if (Math.random() > 0.7) {
+      for (let i = 0; i < 40; i++) {
+        if (Math.random() > 0.6) {
+          // Obstacles spread across track with more space in the middle
+          const side = Math.random() > 0.5;
+          const xPos = side
+            ? 100 + Math.random() * 120  // Left side (100-220)
+            : 320 + Math.random() * 120; // Right side (320-440)
           initObstacles.push({
-            x: 80 + Math.random() * 340,
-            y: 500 + i * 150 + Math.random() * 100,
+            x: xPos,
+            y: 600 + i * 200 + Math.random() * 150,
             type: OBSTACLES[Math.floor(Math.random() * OBSTACLES.length)],
           });
         }
-        if (Math.random() > 0.85) {
+        if (Math.random() > 0.8) {
           initPowerups.push({
-            x: 100 + Math.random() * 300,
-            y: 600 + i * 200 + Math.random() * 100,
+            x: 150 + Math.random() * 200, // Powerups more centered
+            y: 700 + i * 250 + Math.random() * 150,
             type: POWERUPS[Math.floor(Math.random() * POWERUPS.length)],
           });
         }
@@ -328,10 +336,12 @@ export default function App() {
         const updated = { ...npcs };
         Object.keys(updated).forEach(npcChar => {
           const npcData = CHARACTERS[npcChar];
-          // Simple AI: move towards center, random speed variation
-          const targetX = 250 + Math.sin(Date.now() / 1000 + npcChar.charCodeAt(0)) * 100;
-          updated[npcChar].x += (targetX - updated[npcChar].x) * 0.02;
-          
+          // Simple AI: move towards center with weaving, faster movement
+          const targetX = 250 + Math.sin(Date.now() / 800 + npcChar.charCodeAt(0)) * 120;
+          updated[npcChar].x += (targetX - updated[npcChar].x) * 0.05;
+          // Keep NPCs within track bounds
+          updated[npcChar].x = Math.max(100, Math.min(400, updated[npcChar].x));
+
           // NPC progresses based on their speed
           const npcProgress = distance + (npcData.speed - char.speed) * 200 + Math.random() * 50 - 25;
           updated[npcChar].y = 420 + (distance - npcProgress) / 10;
@@ -551,14 +561,17 @@ export default function App() {
   if (gameState === 'playing' || gameState === 'finished') {
     const char = CHARACTERS[selectedCharacter];
     const progress = (distance / FINISH_LINE) * 100;
-    
+
     return (
-      <div className="h-screen bg-gradient-to-b from-sky-300 via-white to-sky-100 overflow-hidden relative font-mono">
+      <div className="h-screen bg-gradient-to-b from-sky-300 via-white to-sky-100 overflow-hidden relative font-mono flex justify-center">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
           @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
         `}</style>
-        
+
+        {/* Game container - fixed 500px width */}
+        <div className="relative w-[500px] h-full">
+
         {/* HUD */}
         <div className="absolute top-2 left-2 right-2 z-20 flex justify-between items-start">
           <div className="bg-black/70 text-white p-3 rounded-lg text-xs space-y-2">
@@ -829,7 +842,7 @@ export default function App() {
                   onClick={() => {
                     setGameState('select');
                     setDistance(0);
-                    setPlayerPos({ x: 200, y: 400 });
+                    setPlayerPos({ x: 250, y: 400 });
                   }}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
@@ -849,9 +862,10 @@ export default function App() {
             </div>
           </div>
         )}
+        </div>{/* End game container */}
       </div>
     );
   }
-  
+
   return null;
 }
