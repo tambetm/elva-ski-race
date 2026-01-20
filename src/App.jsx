@@ -310,16 +310,18 @@ export default function App() {
         return newDist;
       });
       
-      // Check collisions with obstacles
-      obstacles.forEach(obs => {
-        const obsScreenY = obs.y - distance;
-        if (obsScreenY > 380 && obsScreenY < 440) {
-          if (Math.abs(obs.x - playerPos.x) < 30) {
-            setIsCrashed(true);
-            setTimeout(() => setIsCrashed(false), 1500);
+      // Check collisions with obstacles (only if not already crashed)
+      if (!isCrashed) {
+        obstacles.forEach(obs => {
+          const obsScreenY = obs.y - distance;
+          if (obsScreenY > 380 && obsScreenY < 440) {
+            if (Math.abs(obs.x - playerPos.x) < 30) {
+              setIsCrashed(true);
+              setTimeout(() => setIsCrashed(false), 1500);
+            }
           }
-        }
-      });
+        });
+      }
       
       // Check powerup collection
       setPowerups(pus => pus.filter(pu => {
